@@ -1,0 +1,8 @@
+class {
+}
+
+li -- ${input.node.tagName + (input.node.id ? '#'+input.node.id : '')}
+  if(input.node.children)
+    ul
+      for|node| of=(input.filter ? [...input.node.children].filter(input.filter) : [...input.node.children])
+        listNode node=node

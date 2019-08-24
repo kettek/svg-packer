@@ -43,6 +43,15 @@ class {
         this.state.outputSymbols  = Array.prototype.filter.call(target.children, child => child.tagName == 'symbol')
         this.state.outputSymbolId = this.state.outputSymbols.length > 0 ? this.state.outputSymbols[0].id : ''
     }
+    async handleButtonImport(which, ev) {
+        let file = document.createElement('input')
+        file.type = 'file'
+        file.accept = '.svg,image/svg+xml'
+        file.oninput = e => {
+            this.readers[which].readAsText(e.target.files[0])
+        }
+        file.click()
+    }
     async handleDrop(which, ev) {
         ev.preventDefault()
 
@@ -106,7 +115,7 @@ style {
         height: 100%;
     }
     .sectionOutput {
-        grid-template-rows: auto 1fr auto;
+        grid-template-rows: auto auto 1fr auto;
     }
     .sectionOutput_view svg {
         width: 100%;
@@ -116,7 +125,7 @@ style {
 
 div.App
     div.sectionInput on-drop('handleDrop', 'input') on-dragover('handleDragOver')
-        button.sectionInput_buttonImport -- import single
+        button.sectionInput_buttonImport on-click('handleButtonImport', 'input') -- import single
         div.sectionInput_view
             span -- Output of SVG and drag'n'drop
             if(state.inputDataURL != '')
@@ -126,7 +135,7 @@ div.App
                 for|node, index| of=state.inputNodes
                     option key=index value=index -- ${node.tagName+'#'+node.id}
     div.sectionTarget on-drop('handleDrop', 'target') on-dragover('handleDragOver')
-        button.sectionTarget_buttonImport -- import stack
+        button.sectionTarget_buttonImport on-click('handleButtonImport', 'target') -- import stack
         div.sectionTarget_treeOriginal
             textarea -- ${state.targetSource}
         div.sectionTarget_treeModified
@@ -135,6 +144,9 @@ div.App
         select.sectionOutput_select on-change('handleSymbolSelect')
             for|symbol, index| of=state.outputSymbols
                 option key=symbol.id value=symbol.id -- ${symbol.id}
+        ul
+            for|symbol, index| of=state.outputSymbols
+                listNode key=symbol.id node=symbol
         div.sectionOutput_view
             if(state.targetDataURL != '' && state.outputSymbolId != '')
                 svg
