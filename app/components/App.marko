@@ -1,0 +1,142 @@
+class {
+    onCreate() {
+        this.state = {
+            inputSource: '',
+            inputDataURL: '',
+            inputNodes: [],
+            targetSource: '',
+            targetDataURL: '',
+            outputSymbols: [],
+            outputSymbolId: '',
+        }
+        this.inputContainer   = document.createElement('div')
+        this.targetContainer  = document.createElement('div')
+        this.handleInputLoad  = this.handleInputLoad.bind(this)
+        this.handleTargetLoad = this.handleTargetLoad.bind(this)
+
+        this.readers        = {}
+        this.readers.input  = new FileReader()
+        this.readers.input.onload = this.handleInputLoad
+        this.readers.target = new FileReader()
+        this.readers.target.onload = this.handleTargetLoad
+    }
+    async handleInputLoad(e) {
+        this.state.inputSource  = e.target.result
+        this.state.inputDataURL = 'data:image/svg+xml;base64,'+window.btoa(e.target.result)
+        this.inputContainer.innerHTML = e.target.result
+        await this.updateInput()
+    }
+    async updateInput() {
+        let target = this.inputContainer.getElementsByTagName('svg')[0]
+        this.state.inputNodes = Array.prototype.filter.call(target.children, child => {
+            return child.tagName == 'g' || child.tagName == 'path' || child.tagName == 'symbol'
+        })
+    }
+    async handleTargetLoad(e) {
+        this.state.targetSource  = e.target.result
+        this.state.targetDataURL = 'data:image/svg+xml;base64,'+window.btoa(e.target.result)
+        this.targetContainer.innerHTML = e.target.result
+        await this.updateOutput()
+    }
+    async updateOutput() {
+        let target = this.targetContainer.getElementsByTagName('svg')[0]
+        this.state.outputSymbols  = Array.prototype.filter.call(target.children, child => child.tagName == 'symbol')
+        this.state.outputSymbolId = this.state.outputSymbols.length > 0 ? this.state.outputSymbols[0].id : ''
+    }
+    async handleDrop(which, ev) {
+        ev.preventDefault()
+
+        if (ev.dataTransfer.items) {
+            if (ev.dataTransfer.items[0].kind === 'file') {
+                var file = ev.dataTransfer.items[0].getAsFile()
+                this.readers[which].readAsText(file)
+            }
+        } else {
+            let file = ev.dataTransfer.files[0]
+            this.readers[which].readAsText(file)
+        }
+    }
+    handleSymbolSelect(e) {
+        this.state.outputSymbolId = e.target.value
+    }
+    handleDragOver(ev) {
+        ev.preventDefault()
+    }
+}
+
+style {
+    * {
+        box-sizing: border-box;
+    }
+    html {
+        height: 100%;
+    }
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+    .App {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-rows: 1fr;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-gap: .25em;
+    }
+    .sectionInput, .sectionTarget, .sectionOutput {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        grid-template-columns: 1fr;
+        background: #455;
+        color: #fee;
+    }
+    .sectionInput {
+        grid-template-rows: auto 1fr 1fr;
+    }
+    .sectionInput_view img {
+        max-width: 100%;
+        max-height: 100%;
+    }
+    .sectionTarget {
+        grid-template-rows: auto 1fr 1fr;
+    }
+    .sectionTarget_treeOriginal textarea {
+        width: 100%;
+        height: 100%;
+    }
+    .sectionOutput {
+        grid-template-rows: auto 1fr auto;
+    }
+    .sectionOutput_view svg {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+div.App
+    div.sectionInput on-drop('handleDrop', 'input') on-dragover('handleDragOver')
+        button.sectionInput_buttonImport -- import single
+        div.sectionInput_view
+            span -- Output of SVG and drag'n'drop
+            if(state.inputDataURL != '')
+                img src=state.inputDataURL
+        div.sectionInput_treeExport
+            select
+                for|node, index| of=state.inputNodes
+                    option key=index value=index -- ${node.tagName+'#'+node.id}
+    div.sectionTarget on-drop('handleDrop', 'target') on-dragover('handleDragOver')
+        button.sectionTarget_buttonImport -- import stack
+        div.sectionTarget_treeOriginal
+            textarea -- ${state.targetSource}
+        div.sectionTarget_treeModified
+            span -- Here would be the modified target tree
+    div.sectionOutput
+        select.sectionOutput_select on-change('handleSymbolSelect')
+            for|symbol, index| of=state.outputSymbols
+                option key=symbol.id value=symbol.id -- ${symbol.id}
+        div.sectionOutput_view
+            if(state.targetDataURL != '' && state.outputSymbolId != '')
+                svg
+                    use xlink:href=state.targetDataURL+'#'+state.outputSymbolId
+        button.sectionOutput_buttonExport -- export
