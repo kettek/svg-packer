@@ -1,8 +1,27 @@
 class {
+  handleDelete(node, ev) {
+    this.emit('delete-node', node)
+  }
+  handleClick(node, ev) {
+    this.emit('click-node', node)
+  }
 }
 
-li -- ${input.node.tagName + (input.node.id ? '#'+input.node.id : '')}
+style {
+  .clickable {
+    user-select: none;
+    cursor: pointer;
+  }
+  .selected {
+    border: 1px solid lightblue;
+  }
+}
+
+li
+  if(input.canDelete)
+    button on-click('handleDelete', input.node) -- -
+  span class={'selected': input.selectedId == input.node.id, 'clickable': input.node.id } on-click('handleClick', input.node) -- ${input.node.tagName + (input.node.id ? '#'+input.node.id : '')}
   if(input.node.children)
     ul
       for|node| of=(input.filter ? [...input.node.children].filter(input.filter) : [...input.node.children])
-        listNode node=node
+        listNode node=node canDelete=input.canDelete on-click-node('handleClick', node) on-delete-node('handleDelete', node)

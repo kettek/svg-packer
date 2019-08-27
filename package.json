@@ -7,7 +7,11 @@
     "build": "lasso --main ./app/client.js --plugins lasso-marko --inject-into ./index.html",
     "watch-build": "lasso --main ./app/client.js --plugins lasso-marko --inject-into ./index.html --watch"
   },
-  "keywords": ["svg", "symbol", "packer"],
+  "keywords": [
+    "svg",
+    "symbol",
+    "packer"
+  ],
   "author": "Ketchetwahmeegwun T. Southall / kts of kettek",
   "license": "GPL-3.0",
   "dependencies": {

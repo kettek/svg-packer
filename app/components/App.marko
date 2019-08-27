@@ -65,8 +65,15 @@ class {
             this.readers[which].readAsText(file)
         }
     }
-    handleSymbolSelect(e) {
-        this.state.outputSymbolId = e.target.value
+    handleOutputNodeSelect(node) {
+        if (node.tagName == 'symbol') {
+            if (node.id) {
+                this.state.outputSymbolId = node.id
+            }
+        }
+    }
+    handleOutputNodeDelete(node) {
+        console.log('delete: ', node)
     }
     handleDragOver(ev) {
         ev.preventDefault()
@@ -100,22 +107,37 @@ style {
         background: #455;
         color: #fee;
     }
+    .sectionInput_header, .sectionTarget_header, .sectionOutput_header {
+        font-size: 150%;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
     .sectionInput {
-        grid-template-rows: auto 1fr 1fr;
+        grid-template-rows: auto auto .5fr .5fr;
     }
     .sectionInput_view img {
         max-width: 100%;
         max-height: 100%;
     }
+    .sectionInput_treeExport {
+        background: #122;
+        overflow: auto;
+        height: 100%;
+    }
     .sectionTarget {
-        grid-template-rows: auto 1fr 1fr;
+        grid-template-rows: auto auto 1fr 1fr;
     }
     .sectionTarget_treeOriginal textarea {
         width: 100%;
         height: 100%;
     }
     .sectionOutput {
-        grid-template-rows: auto auto 1fr auto;
+        grid-template-rows: auto .5fr .5fr auto;
+    }
+    .sectionOutput_list {
+        background: #122;
+        height: 100%;
+        overflow: auto;
     }
     .sectionOutput_view svg {
         width: 100%;
@@ -124,29 +146,29 @@ style {
 }
 
 div.App
+    div.sectionTarget on-drop('handleDrop', 'target') on-dragover('handleDragOver')
+        header.sectionTarget_header -- Base SVG Stack
+        button.sectionTarget_buttonImport on-click('handleButtonImport', 'target') -- import stack
+        div.sectionTarget_treeOriginal
+            textarea -- ${state.targetSource}
+        div.sectionTarget_treeModified
+            span -- Here would be the modified target tree
     div.sectionInput on-drop('handleDrop', 'input') on-dragover('handleDragOver')
+        header.sectionInput_header -- Importing SVG
         button.sectionInput_buttonImport on-click('handleButtonImport', 'input') -- import single
         div.sectionInput_view
             span -- Output of SVG and drag'n'drop
             if(state.inputDataURL != '')
                 img src=state.inputDataURL
         div.sectionInput_treeExport
-            select
+            ul.sectionInput_treeExport_list
                 for|node, index| of=state.inputNodes
-                    option key=index value=index -- ${node.tagName+'#'+node.id}
-    div.sectionTarget on-drop('handleDrop', 'target') on-dragover('handleDragOver')
-        button.sectionTarget_buttonImport on-click('handleButtonImport', 'target') -- import stack
-        div.sectionTarget_treeOriginal
-            textarea -- ${state.targetSource}
-        div.sectionTarget_treeModified
-            span -- Here would be the modified target tree
+                    listNode key=node.id node=node
     div.sectionOutput
-        select.sectionOutput_select on-change('handleSymbolSelect')
+        header.sectionOutput_header -- Exporting SVG Stack
+        ul.sectionOutput_list
             for|symbol, index| of=state.outputSymbols
-                option key=symbol.id value=symbol.id -- ${symbol.id}
-        ul
-            for|symbol, index| of=state.outputSymbols
-                listNode key=symbol.id node=symbol
+                listNode canDelete selectedId=state.outputSymbolId key=symbol.id node=symbol on-click-node('handleOutputNodeSelect') on-delete-node('handleOutputNodeDelete')
         div.sectionOutput_view
             if(state.targetDataURL != '' && state.outputSymbolId != '')
                 svg
