@@ -8,6 +8,7 @@ class {
             targetDataURL: '',
             outputSymbols: [],
             outputSymbolId: '',
+            showImportModal: false,
         }
         this.inputContainer   = document.createElement('div')
         this.targetContainer  = document.createElement('div')
@@ -19,11 +20,31 @@ class {
         this.readers.input.onload = this.handleInputLoad
         this.readers.target = new FileReader()
         this.readers.target.onload = this.handleTargetLoad
+        this.restore()
+    }
+    onDestroy() {
+    }
+    store() {
+        localStorage.setItem('inputSource', this.state.inputSource)
+        localStorage.setItem('targetSource', this.state.targetSource)
+        localStorage.setItem('outputSymbolId', this.state.outputSymbolId)
+    }
+    restore() {
+        let inputSource = localStorage.getItem('inputSource')
+        if (inputSource) this.syncInput(inputSource)
+        let targetSource = localStorage.getItem('targetSource')
+        if (targetSource) this.syncTarget(targetSource)
+        let outputSymbolId = localStorage.getItem('outputSymbolId')
+        if (outputSymbolId) this.state.outputSymbolId = outputSymbolId
     }
     async handleInputLoad(e) {
-        this.state.inputSource  = e.target.result
-        this.state.inputDataURL = 'data:image/svg+xml;base64,'+window.btoa(e.target.result)
-        this.inputContainer.innerHTML = e.target.result
+        await this.syncInput(e.target.result)
+        this.store()
+    }
+    async syncInput(source) {
+        this.state.inputSource  = source
+        this.state.inputDataURL = `data:image/svg+xml;base64,${window.btoa(source)}`
+        this.inputContainer.innerHTML = source
         await this.updateInput()
     }
     async updateInput() {
@@ -33,9 +54,13 @@ class {
         })
     }
     async handleTargetLoad(e) {
-        this.state.targetSource  = e.target.result
-        this.state.targetDataURL = 'data:image/svg+xml;base64,'+window.btoa(e.target.result)
-        this.targetContainer.innerHTML = e.target.result
+        await this.syncTarget(e.target.result)
+        this.store()
+    }
+    async syncTarget(source) {
+        this.state.targetSource = source
+        this.state.targetDataURL = `data:image/svg+xml;base64,${window.btoa(source)}`
+        this.targetContainer.innerHTML = source
         await this.updateOutput()
     }
     async updateOutput() {
@@ -49,6 +74,8 @@ class {
         file.accept = '.svg,image/svg+xml'
         file.oninput = e => {
             this.readers[which].readAsText(e.target.files[0])
+            this.store()
+            this.state.showImportModal = true
         }
         file.click()
     }
@@ -59,16 +86,19 @@ class {
             if (ev.dataTransfer.items[0].kind === 'file') {
                 var file = ev.dataTransfer.items[0].getAsFile()
                 this.readers[which].readAsText(file)
+                this.store()
             }
         } else {
             let file = ev.dataTransfer.files[0]
             this.readers[which].readAsText(file)
+            this.store()
         }
     }
     handleOutputNodeSelect(node) {
         if (node.tagName == 'symbol') {
             if (node.id) {
                 this.state.outputSymbolId = node.id
+                this.store()
             }
         }
     }
@@ -77,6 +107,10 @@ class {
     }
     handleDragOver(ev) {
         ev.preventDefault()
+    }
+
+    closeImportModal() {
+        this.state.showImportModal = false
     }
 }
 
@@ -91,6 +125,19 @@ style {
         width: 100%;
         height: 100%;
         margin: 0;
+        font-size: 2vmin;
+    }
+    header {
+        position: relative;
+        text-transform: uppercase;
+        font-family: 'Major Mono Display', monospace;
+        padding: .5em;
+        display: grid;
+        grid-template-rows: 1fr;
+        grid-template-columns: auto 2em;
+        user-select: none;
+        z-index: 1;
+        color: #fff;
     }
     .App {
         width: 100%;
@@ -174,3 +221,5 @@ div.App
                 svg
                     use xlink:href=state.targetDataURL+'#'+state.outputSymbolId
         button.sectionOutput_buttonExport -- export
+    if(state.showImportModal)
+        importModal title=`import SVG` source=state.inputSource dataURL=state.inputDataURL img=state.inputDataURL nodes=state.inputNodes on-close('closeImportModal')
